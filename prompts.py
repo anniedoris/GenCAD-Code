@@ -1,0 +1,1 @@
+DEFAULT_PROMPT = 'Generate the CADQuery code needed to create the CAD for the provided image. Just the code, no other words.'

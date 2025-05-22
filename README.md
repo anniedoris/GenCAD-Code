@@ -1,16 +1,31 @@
-# Real Photo Test Set (WIP)
+## Summary of Datasets
 
-### Using Dataset from HF
+Our datasets can be accessed using Huggingface or the Downloadable links below.
+
+```CADCODER/GenCAD-Code```: A dataset of XX images of CAD models pair with CadQuery Python code. This dataset is dervied from the DeepCAD dataset.
+
+&nbsp;&nbsp;&nbsp;&nbsp;[Huggingface]() | [Download]()
+
+```CADCODER/real_photo_test```: A dataset of 400 images of 3D printed CAD objects from the test subset of the DeepCAD dataset.
+
+&nbsp;&nbsp;&nbsp;&nbsp;[Huggingface](https://huggingface.co/datasets/CADCODER/real_photo_test) | [Download]()
+
+## Generating our Datasets
+
+We provide the scripts we used to create our datasets below, in case you'd like to adapt them to your own needs.
+
+#### Generating GenCAD-Code:
 TODO
 
-### Creating HF Dataset
-
+#### Generating Real Photo Test Data:
 First, load HEICs into the ```real_photo_test_set/heics``` directory. Then, run the following to convert HEICs into PNGs:
 
 ```
 python scripts/process_heic.py --heic_dir real_photo_test_set/heics --save_dir real_photo_test_set/pngs
 ```
 
-Next, run the script to generate the HF repo:
+Next, run the script to push the dataset to huggingface:
 
-TODO
+```
+python scripts/upload_realphoto_to_hf.py
+```
