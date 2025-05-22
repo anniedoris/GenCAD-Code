@@ -1,2 +1,6 @@
 __pycache__/
 .DS_Store
+deepcad_derived/data/cad_vec/
+deepcad_derived/data/cadquery/
+deepcad_derived/data/logs/
+deepcad_derived/deepcad_vec.zip
