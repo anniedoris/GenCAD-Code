@@ -1,0 +1,11 @@
+name: cad_code
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - conda-forge::pythonocc-core
+  - cadquery
+  - ipykernel
+  - k3d
+  - openpyxl
