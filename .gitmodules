@@ -1,0 +1,3 @@
+[submodule "external/DeepCAD"]
+	path = external/DeepCAD
+	url = https://github.com/ChrisWu1997/DeepCAD.git
