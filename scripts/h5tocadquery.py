@@ -10,7 +10,8 @@ import subprocess
 # May need to update this if your data is stored elsewhere
 H5_VEC_FOLDER = 'deepcad_derived/data/cad_vec'
 UNQUANTIZE = True # TODO: support unquantized?
-generate_stls = False
+generate_stls = True
+truncate = int(input("How many digits would you like: "))
 ###########
 
 def extract_h5_file(h5_file_path):
@@ -58,7 +59,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
 
     Returns:
         None
-    """
+    """ 
     
     def split_by_sketches(arr):
         # Finding indices where the first element is 5
@@ -98,7 +99,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
     
     def cadquery_workplane(sketch_plane_obj, sketch_num):
         workplane_comment = f"# Generating a workplane for sketch {sketch_num}\n"
-        python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}), cq.Vector({sketch_plane_obj.x_axis[0]}, {sketch_plane_obj.x_axis[1]}, {sketch_plane_obj.x_axis[2]}), cq.Vector({sketch_plane_obj.normal[0]}, {sketch_plane_obj.normal[1]}, {sketch_plane_obj.normal[2]})))\n"
+        python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]:.{truncate}f}, {sketch_plane_obj.origin[1]:.{truncate}f}, {sketch_plane_obj.origin[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.x_axis[0]:.{truncate}f}, {sketch_plane_obj.x_axis[1]:.{truncate}f}, {sketch_plane_obj.x_axis[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.normal[0]:.{truncate}f}, {sketch_plane_obj.normal[1]:.{truncate}f}, {sketch_plane_obj.normal[2]:.{truncate}f})))\n"
         return workplane_comment + python_command
     
     def cadquery_line(x, y, curr_x, curr_y, loop_list, unquantize, extrude_scale):
@@ -112,9 +113,9 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
                 x = (x + translate)*scale
                 y = (y + translate)*scale
             if len(loop_list) == 0:
-                return f".moveTo({x}, {y})"
+                return f".moveTo({x:.{truncate}f}, {y:.{truncate}f})"
             else:
-                return f".lineTo({x}, {y})"
+                return f".lineTo({x:.{truncate}f}, {y:.{truncate}f})"
         
     def cadquery_arc(x, y, curr_x, curr_y, sweep, dir_flag, loop_list, unquantize, extrude_scale):
         arc_out = get_arc(x, y, curr_x, curr_y, sweep, dir_flag, is_numerical=True)
@@ -135,9 +136,9 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
             curr_y = (curr_y + translate) * scale
             
         if len(loop_list) == 0:
-            return f".moveTo({curr_x}, {curr_y}).threePointArc(({mid_point_x}, {mid_point_y}), ({end_point_x}, {end_point_y}))"
+            return f".moveTo({curr_x:.{truncate}f}, {curr_y:.{truncate}f}).threePointArc(({mid_point_x:.{truncate}f}, {mid_point_y:.{truncate}f}), ({end_point_x:.{truncate}f}, {end_point_y:.{truncate}f}))"
         else:
-            return f".threePointArc(({mid_point_x}, {mid_point_y}), ({end_point_x}, {end_point_y}))"
+            return f".threePointArc(({mid_point_x:.{truncate}f}, {mid_point_y:.{truncate}f}), ({end_point_x:.{truncate}f}, {end_point_y:.{truncate}f}))"
         
     def cadquery_circle(x, y, r, loop_list, unquantize, extrude_scale):
         if unquantize:
@@ -147,7 +148,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
             y = (y + translate)*scale
             r = r*scale
         if len(loop_list) == 0:
-            return f".moveTo({x}, {y}).circle({r})"
+            return f".moveTo({x:.{truncate}f}, {y:.{truncate}f}).circle({r:.{truncate}f})"
         else:
             return NotImplementedError("Circle with other things in loop")
     
@@ -174,10 +175,10 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
         if sketch_num == 0: #TODO: futher investigate case 80443. DeepCAD doesn't actually join the bodies? If the bodies are joined, shouldn't lines be removed from the pieces?
             if (op == EXTRUDE_OPERATIONS.index("NewBodyFeatureOperation")) or (op == EXTRUDE_OPERATIONS.index("JoinFeatureOperation")) or (op == EXTRUDE_OPERATIONS.index("CutFeatureOperation")) or (op == EXTRUDE_OPERATIONS.index("IntersectFeatureOperation")):
                 if type == EXTENT_TYPE.index("OneSideFeatureExtentType"):
-                    extrude_command = f".extrude({dir1})\n"
+                    extrude_command = f".extrude({dir1:.{truncate}f})\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid{sketch_num}\n"
                 elif type == EXTENT_TYPE.index("SymmetricFeatureExtentType"):
-                    extrude_command = f".extrude({dir1}, both=True)\n"
+                    extrude_command = f".extrude({dir1:.{truncate}f}, both=True)\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid{sketch_num}\n"
                 else: # two sided extent
                     if (dir2==0): # I don't think DeepCAD handles this case
@@ -419,7 +420,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
     # Write the python string to a python file
     prefix = '/'.join(H5_VEC_FOLDER.split('/', 2)[:2])
     
-    save_stl = f"{prefix}/cadquery_stl/" + save_python_dir[24:-3] + ".stl" # TODO: get rid of hard coding of save root dir
+    save_stl = f"{prefix}/cadquery_stl/" + save_python_dir[24:-3] + ".step" # TODO: get rid of hard coding of save root dir
     
     if generate_stls:
         python_cadquery += f"cq.exporters.export(solid, \"{save_stl}\")"
