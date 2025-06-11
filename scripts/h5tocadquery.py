@@ -6,6 +6,7 @@ import os
 from deepcad_constants import *
 import subprocess
 
+## Saina made some great edits!!!
 ###########
 # May need to update this if your data is stored elsewhere
 H5_VEC_FOLDER = 'deepcad_derived/data/cad_vec'
