@@ -5,8 +5,13 @@ from geom_utils import *
 import os
 from deepcad_constants import *
 import subprocess
-import sys
-from pathlib import Path
+import matplotlib.pyplot as plt
+import cv2
+from skimage.metrics import structural_similarity as ssim
+import io
+import tempfile
+from PIL import Image
+from cadquery.occ_impl.renderer import get_rendering
 
 ###########
 # May need to update this if your data is stored elsewhere
@@ -431,19 +436,56 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
     with open(save_python_dir, "w") as file:
         file.write(python_cadquery)
     
-    def step_checker(step_path):
-        """
-        Checks if the STEP file matches the original h5 file."""
-        for file in glob.glob(f"{H5_VEC_FOLDER[:-5]}/deepcad_stl/*.stl"):
-            if file == step_path:
-                print(f"STEP file {step_path} matches the original h5 file.")
-                return True
-            else:
-                print(f"STEP file {step_path} does not match the original h5 file.")
-                return False
-    return
+    def render_cadquery_to_image(cq_obj, size=(300, 300)):
+        """Convert the STEP into an image for comparison"""
 
+    # Render and save as temporary PNG
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        get_rendering(cq_obj, tmp.name, render_size=size)
+        img = cv2.imread(tmp.name, cv2.IMREAD_GRAYSCALE)
+        os.unlink(tmp.name)
+    return img
 
+def compare_images(img1, img2):
+    """Resize and compute SSIM similarity score between two images."""
+    img1 = cv2.resize(img1, (300, 300))
+    img2 = cv2.resize(img2, (300, 300))
+    return ssim(img1, img2)
+
+def check_all_parts(h5_dir, image_dir, threshold=0.90):
+
+    matches = 0
+    total = 0
+
+    for filename in os.listdir(h5_dir):
+        if not filename.endswith(".h5"):
+            continue
+
+        name = os.path.splitext(filename)[0]
+        h5_path = os.path.join(h5_dir, filename)
+        img_path = os.path.join(image_dir, name + ".png")
+
+        if not os.path.exists(img_path):
+            print(f"Skipping {name}: image not found.")
+            continue
+
+        try:
+            # Generate CadQuery object from .h5
+            cq_img = render_cadquery_to_image(cq_obj)
+
+            ref_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+
+            score = compare_images(cq_img, ref_img)
+
+            print(f"{name}: similarity = {score:.2f}")
+            if score >= threshold:
+                matches += 1
+        except Exception as e:
+            print(f"Error with {name}: {e}")
+
+        total += 1
+
+    print(f"{matches} / {total} parts matched the reference images (threshold = {threshold})")
 
 if __name__ == "__main__":
     
@@ -510,7 +552,7 @@ if __name__ == "__main__":
                             # Check if DeepCAD produced the file
                             if os.path.exists(f"{prefix}/deepcad_stl" + h5_vec_path.replace(H5_VEC_FOLDER, "").rsplit(".", 1)[0] + ".stl"):
                                 file_difference_from_deepcad.append("hanging case: " + h5_vec_path.replace(H5_VEC_FOLDER, "").rsplit(".", 1)[0])
-                            
+  
                     except subprocess.CalledProcessError as e:
                         print("Error occurred:", e)
                         stls_not_generated += 1
@@ -552,12 +594,12 @@ if __name__ == "__main__":
         else:
             append_write = 'w' # make a new file if not
         with open (f"{prefix}/trunc_logs_.txt", append_write) as f:
-            f.write(f"{sub_dir}: {truncate}, {}")
+            f.write(f"{sub_dir}: {truncate}, {successful_files}")
         
-
-        
-    
-    
+        if generate_graphs:
+            plt.plot(truncate, successful_files, 'ro')
+            plt.xlabel('Truncation Level')
+            plt.ylabel('Number of Successfully Generated Files')
     
     
     # for i, h5_vec_path in enumerate(h5_files):
