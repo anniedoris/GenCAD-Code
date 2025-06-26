@@ -5,6 +5,8 @@ from geom_utils import *
 import os
 from deepcad_constants import *
 import subprocess
+import sys
+from pathlib import Path
 
 ###########
 # May need to update this if your data is stored elsewhere
@@ -12,6 +14,7 @@ H5_VEC_FOLDER = 'deepcad_derived/data/cad_vec'
 UNQUANTIZE = True # TODO: support unquantized?
 generate_stls = True
 truncate = int(input("How many digits would you like: "))
+generate_graphs = False
 ###########
 
 def extract_h5_file(h5_file_path):
@@ -427,7 +430,19 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
     os.makedirs(save_python_dir.rsplit("/", 1)[0], exist_ok=True)
     with open(save_python_dir, "w") as file:
         file.write(python_cadquery)
+    
+    def step_checker(step_path):
+        """
+        Checks if the STEP file matches the original h5 file."""
+        for file in glob.glob(f"{H5_VEC_FOLDER[:-5]}/deepcad_stl/*.stl"):
+            if file == step_path:
+                print(f"STEP file {step_path} matches the original h5 file.")
+                return True
+            else:
+                print(f"STEP file {step_path} does not match the original h5 file.")
+                return False
     return
+
 
 
 if __name__ == "__main__":
@@ -529,6 +544,17 @@ if __name__ == "__main__":
         
         with open(f"{prefix}/logs/log_files_" + sub_dir + ".txt", "w") as f:
             f.write("\n".join(file_difference_from_deepcad))
+
+        # Log the truncation level and the accuracy it brings
+        trunc_path = f"{prefix}/trunc_logs_.txt"
+        if os.path.exists(trunc_path):
+            append_write = 'a' # append if already exists
+        else:
+            append_write = 'w' # make a new file if not
+        with open (f"{prefix}/trunc_logs_.txt", append_write) as f:
+            f.write(f"{sub_dir}: {truncate}, {}")
+        
+
         
     
     
