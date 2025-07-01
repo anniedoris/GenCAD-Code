@@ -6,12 +6,6 @@ import os
 from deepcad_constants import *
 import subprocess
 import matplotlib.pyplot as plt
-import cv2
-from skimage.metrics import structural_similarity as ssim
-import io
-import tempfile
-from PIL import Image
-from cadquery.occ_impl.renderer import get_rendering
 
 ###########
 # May need to update this if your data is stored elsewhere
@@ -436,56 +430,17 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
     with open(save_python_dir, "w") as file:
         file.write(python_cadquery)
     
-    def render_cadquery_to_image(cq_obj, size=(300, 300)):
-        """Convert the STEP into an image for comparison"""
-
-    # Render and save as temporary PNG
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-        get_rendering(cq_obj, tmp.name, render_size=size)
-        img = cv2.imread(tmp.name, cv2.IMREAD_GRAYSCALE)
-        os.unlink(tmp.name)
-    return img
-
-def compare_images(img1, img2):
-    """Resize and compute SSIM similarity score between two images."""
-    img1 = cv2.resize(img1, (300, 300))
-    img2 = cv2.resize(img2, (300, 300))
-    return ssim(img1, img2)
-
-def check_all_parts(h5_dir, image_dir, threshold=0.90):
-
-    matches = 0
-    total = 0
-
-    for filename in os.listdir(h5_dir):
-        if not filename.endswith(".h5"):
-            continue
-
-        name = os.path.splitext(filename)[0]
-        h5_path = os.path.join(h5_dir, filename)
-        img_path = os.path.join(image_dir, name + ".png")
-
-        if not os.path.exists(img_path):
-            print(f"Skipping {name}: image not found.")
-            continue
-
+def step_checker (save_python_dir):
+        """
+        Checks if the generated python file produces a valid STEP file
+        """
         try:
-            # Generate CadQuery object from .h5
-            cq_img = render_cadquery_to_image(cq_obj)
+            subprocess.run(["python", save_python_dir], check=True)
+            print(f"Generated STEP file: {save_python_dir}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error generating STEP file: {e}")
+            raise
 
-            ref_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-
-            score = compare_images(cq_img, ref_img)
-
-            print(f"{name}: similarity = {score:.2f}")
-            if score >= threshold:
-                matches += 1
-        except Exception as e:
-            print(f"Error with {name}: {e}")
-
-        total += 1
-
-    print(f"{matches} / {total} parts matched the reference images (threshold = {threshold})")
 
 if __name__ == "__main__":
     
@@ -507,6 +462,7 @@ if __name__ == "__main__":
         code_files_successfully_generated = 0
         stls_generated_successfully = 0
         stls_not_generated = 0
+        gen_file = 0 # count how many files were generated
         no_code = []
         no_stl = []
         file_difference_from_deepcad = []
@@ -543,6 +499,10 @@ if __name__ == "__main__":
                         if ("/0002/00024147.h5" not in h5_vec_path) and ("/0005/00057125.h5" not in h5_vec_path) and ("/0012/00126522.h5" not in h5_vec_path) and ("/0014/00140564.h5" not in h5_vec_path): #handle these weird hanging cases
                             subprocess.run(["python", python_file_save_path], check=True)
                             stls_generated_successfully += 1
+                            step_checker(python_file_save_path) # check if the generated python file produces a valid STEP file
+                            if os.path.exists(stl_file_save_path):
+                                gen_file += 1
+
                             # TODO: Check for equivalence of STLs, create a log of stl differences
                             
                         else:
@@ -576,6 +536,7 @@ if __name__ == "__main__":
         print(f"Code file fails: {code_files_not_generated}")
         print(f"STLs generated successfully: {stls_generated_successfully}")
         print(f"STLs NOT generated: {stls_not_generated}")
+        print (f"Total number of generated files: {gen_file}")
     
     
         with open(f"{prefix}/logs/code_issues_" + sub_dir + ".txt", "w") as f:
@@ -594,10 +555,10 @@ if __name__ == "__main__":
         else:
             append_write = 'w' # make a new file if not
         with open (f"{prefix}/trunc_logs_.txt", append_write) as f:
-            f.write(f"{sub_dir}: {truncate}, {successful_files}")
+            f.write(f"{sub_dir}: {truncate}, {gen_file}\n")
         
         if generate_graphs:
-            plt.plot(truncate, successful_files, 'ro')
+            plt.plot(truncate, gen_file, 'ro')
             plt.xlabel('Truncation Level')
             plt.ylabel('Number of Successfully Generated Files')
     
