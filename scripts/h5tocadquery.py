@@ -13,7 +13,12 @@ H5_VEC_FOLDER = 'deepcad_derived/data/cad_vec'
 UNQUANTIZE = True # TODO: support unquantized?
 generate_stls = True
 truncate = int(input("How many digits would you like: "))
-generate_graphs = True
+#file_path_ques = str(input("What file path would you like to save the generated python files to? (default: deepcad_derived/data/cad_vec/cadquery): "))
+graph_ques = str(input("Would you like to generate a graph of the truncation level vs number of successfully generated files? (y/n): "))
+if graph_ques == 'y':
+    generate_graphs = True
+else:
+    generate_graphs = False
 ###########
 
 def extract_h5_file(h5_file_path):
@@ -558,10 +563,10 @@ if __name__ == "__main__":
         with open (f"{prefix}/trunc_logs_.txt", append_write) as f:
             f.write(f"{truncate}, {gen_file}\n")
         
-        if generate_graphs:
-            plt.plot(truncate, gen_file, 'ro')
-            plt.xlabel('Truncation Level')
-            plt.ylabel('Number of Successfully Generated Files')
+    if generate_graphs:
+        plt.plot(truncate, gen_file, 'ro')
+        plt.xlabel('Truncation Level')
+        plt.ylabel('Number of Successfully Generated Files')
     
     
     # for i, h5_vec_path in enumerate(h5_files):
