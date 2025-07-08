@@ -459,7 +459,8 @@ if __name__ == "__main__":
     # h5_vec_path = h5_files[35167]
     # h5_vec_path = h5_files[95149]
     
-    sub_dirs = [str(i).zfill(4) for i in range(100)]
+    #sub_dirs = [str(i).zfill(4) for i in range(100)]
+    sub_dirs = ["0000"]
 
     for sub_dir in sub_dirs:
         
