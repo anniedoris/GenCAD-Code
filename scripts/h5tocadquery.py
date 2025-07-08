@@ -5,12 +5,20 @@ from geom_utils import *
 import os
 from deepcad_constants import *
 import subprocess
+import matplotlib.pyplot as plt
 
 ###########
 # May need to update this if your data is stored elsewhere
 H5_VEC_FOLDER = 'deepcad_derived/data/cad_vec'
 UNQUANTIZE = True # TODO: support unquantized?
-generate_stls = False
+generate_stls = True
+truncate = int(input("How many digits would you like: "))
+#file_path_ques = str(input("What file path would you like to save the generated python files to? (default: deepcad_derived/data/cad_vec/cadquery): "))
+graph_ques = str(input("Would you like to generate a graph of the truncation level vs number of successfully generated files? (y/n): "))
+if graph_ques == 'y':
+    generate_graphs = True
+else:
+    generate_graphs = False
 ###########
 
 def extract_h5_file(h5_file_path):
@@ -58,7 +66,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
 
     Returns:
         None
-    """
+    """ 
     
     def split_by_sketches(arr):
         # Finding indices where the first element is 5
@@ -98,7 +106,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
     
     def cadquery_workplane(sketch_plane_obj, sketch_num):
         workplane_comment = f"# Generating a workplane for sketch {sketch_num}\n"
-        python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}), cq.Vector({sketch_plane_obj.x_axis[0]}, {sketch_plane_obj.x_axis[1]}, {sketch_plane_obj.x_axis[2]}), cq.Vector({sketch_plane_obj.normal[0]}, {sketch_plane_obj.normal[1]}, {sketch_plane_obj.normal[2]})))\n"
+        python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]:.{truncate}f}, {sketch_plane_obj.origin[1]:.{truncate}f}, {sketch_plane_obj.origin[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.x_axis[0]:.{truncate}f}, {sketch_plane_obj.x_axis[1]:.{truncate}f}, {sketch_plane_obj.x_axis[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.normal[0]:.{truncate}f}, {sketch_plane_obj.normal[1]:.{truncate}f}, {sketch_plane_obj.normal[2]:.{truncate}f})))\n"
         return workplane_comment + python_command
     
     def cadquery_line(x, y, curr_x, curr_y, loop_list, unquantize, extrude_scale):
@@ -112,9 +120,9 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
                 x = (x + translate)*scale
                 y = (y + translate)*scale
             if len(loop_list) == 0:
-                return f".moveTo({x}, {y})"
+                return f".moveTo({x:.{truncate}f}, {y:.{truncate}f})"
             else:
-                return f".lineTo({x}, {y})"
+                return f".lineTo({x:.{truncate}f}, {y:.{truncate}f})"
         
     def cadquery_arc(x, y, curr_x, curr_y, sweep, dir_flag, loop_list, unquantize, extrude_scale):
         arc_out = get_arc(x, y, curr_x, curr_y, sweep, dir_flag, is_numerical=True)
@@ -135,9 +143,9 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
             curr_y = (curr_y + translate) * scale
             
         if len(loop_list) == 0:
-            return f".moveTo({curr_x}, {curr_y}).threePointArc(({mid_point_x}, {mid_point_y}), ({end_point_x}, {end_point_y}))"
+            return f".moveTo({curr_x:.{truncate}f}, {curr_y:.{truncate}f}).threePointArc(({mid_point_x:.{truncate}f}, {mid_point_y:.{truncate}f}), ({end_point_x:.{truncate}f}, {end_point_y:.{truncate}f}))"
         else:
-            return f".threePointArc(({mid_point_x}, {mid_point_y}), ({end_point_x}, {end_point_y}))"
+            return f".threePointArc(({mid_point_x:.{truncate}f}, {mid_point_y:.{truncate}f}), ({end_point_x:.{truncate}f}, {end_point_y:.{truncate}f}))"
         
     def cadquery_circle(x, y, r, loop_list, unquantize, extrude_scale):
         if unquantize:
@@ -147,7 +155,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
             y = (y + translate)*scale
             r = r*scale
         if len(loop_list) == 0:
-            return f".moveTo({x}, {y}).circle({r})"
+            return f".moveTo({x:.{truncate}f}, {y:.{truncate}f}).circle({r:.{truncate}f})"
         else:
             return NotImplementedError("Circle with other things in loop")
     
@@ -174,10 +182,10 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
         if sketch_num == 0: #TODO: futher investigate case 80443. DeepCAD doesn't actually join the bodies? If the bodies are joined, shouldn't lines be removed from the pieces?
             if (op == EXTRUDE_OPERATIONS.index("NewBodyFeatureOperation")) or (op == EXTRUDE_OPERATIONS.index("JoinFeatureOperation")) or (op == EXTRUDE_OPERATIONS.index("CutFeatureOperation")) or (op == EXTRUDE_OPERATIONS.index("IntersectFeatureOperation")):
                 if type == EXTENT_TYPE.index("OneSideFeatureExtentType"):
-                    extrude_command = f".extrude({dir1})\n"
+                    extrude_command = f".extrude({dir1:.{truncate}f})\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid{sketch_num}\n"
                 elif type == EXTENT_TYPE.index("SymmetricFeatureExtentType"):
-                    extrude_command = f".extrude({dir1}, both=True)\n"
+                    extrude_command = f".extrude({dir1:.{truncate}f}, both=True)\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid{sketch_num}\n"
                 else: # two sided extent
                     if (dir2==0): # I don't think DeepCAD handles this case
@@ -419,14 +427,24 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
     # Write the python string to a python file
     prefix = '/'.join(H5_VEC_FOLDER.split('/', 2)[:2])
     
-    save_stl = f"{prefix}/cadquery_stl/" + save_python_dir[24:-3] + ".stl" # TODO: get rid of hard coding of save root dir
+    save_stl = f"{prefix}/cadquery_stl/" + save_python_dir[24:-3] + ".step" # TODO: get rid of hard coding of save root dir
     
     if generate_stls:
         python_cadquery += f"cq.exporters.export(solid, \"{save_stl}\")"
     os.makedirs(save_python_dir.rsplit("/", 1)[0], exist_ok=True)
     with open(save_python_dir, "w") as file:
         file.write(python_cadquery)
-    return
+    
+def step_checker (save_python_dir):
+        """
+        Checks if the generated python file produces a valid STEP file
+        """
+        try:
+            subprocess.run(["python", save_python_dir], check=True)
+            print(f"Generated STEP file: {save_python_dir}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error generating STEP file: {e}")
+            raise
 
 
 if __name__ == "__main__":
@@ -441,7 +459,8 @@ if __name__ == "__main__":
     # h5_vec_path = h5_files[35167]
     # h5_vec_path = h5_files[95149]
     
-    sub_dirs = [str(i).zfill(4) for i in range(100)]
+    #sub_dirs = [str(i).zfill(4) for i in range(100)]
+    sub_dirs = ["0000"]
 
     for sub_dir in sub_dirs:
         
@@ -449,6 +468,7 @@ if __name__ == "__main__":
         code_files_successfully_generated = 0
         stls_generated_successfully = 0
         stls_not_generated = 0
+        gen_file = 0 # count how many files were generated
         no_code = []
         no_stl = []
         file_difference_from_deepcad = []
@@ -485,6 +505,10 @@ if __name__ == "__main__":
                         if ("/0002/00024147.h5" not in h5_vec_path) and ("/0005/00057125.h5" not in h5_vec_path) and ("/0012/00126522.h5" not in h5_vec_path) and ("/0014/00140564.h5" not in h5_vec_path): #handle these weird hanging cases
                             subprocess.run(["python", python_file_save_path], check=True)
                             stls_generated_successfully += 1
+                            step_checker(python_file_save_path) # check if the generated python file produces a valid STEP file
+                            if os.path.exists(stl_file_save_path):
+                                gen_file += 1
+
                             # TODO: Check for equivalence of STLs, create a log of stl differences
                             
                         else:
@@ -494,7 +518,7 @@ if __name__ == "__main__":
                             # Check if DeepCAD produced the file
                             if os.path.exists(f"{prefix}/deepcad_stl" + h5_vec_path.replace(H5_VEC_FOLDER, "").rsplit(".", 1)[0] + ".stl"):
                                 file_difference_from_deepcad.append("hanging case: " + h5_vec_path.replace(H5_VEC_FOLDER, "").rsplit(".", 1)[0])
-                            
+  
                     except subprocess.CalledProcessError as e:
                         print("Error occurred:", e)
                         stls_not_generated += 1
@@ -518,6 +542,8 @@ if __name__ == "__main__":
         print(f"Code file fails: {code_files_not_generated}")
         print(f"STLs generated successfully: {stls_generated_successfully}")
         print(f"STLs NOT generated: {stls_not_generated}")
+        print (f"Total number of generated files: {gen_file}")
+        print (f"Truncation Level: {truncate}")
     
     
         with open(f"{prefix}/logs/code_issues_" + sub_dir + ".txt", "w") as f:
@@ -528,9 +554,20 @@ if __name__ == "__main__":
         
         with open(f"{prefix}/logs/log_files_" + sub_dir + ".txt", "w") as f:
             f.write("\n".join(file_difference_from_deepcad))
+
+        # Log the truncation level and the accuracy it brings
+        trunc_path = f"{prefix}/trunc_logs.txt"
+        if os.path.exists(trunc_path):
+            append_write = 'a' # append if already exists
+        else:
+            append_write = 'w' # make a new file if not
+        with open (f"{prefix}/trunc_logs_.txt", append_write) as f:
+            f.write(f"{truncate}, {gen_file}\n")
         
-    
-    
+    if generate_graphs:
+        plt.plot(truncate, gen_file, 'ro')
+        plt.xlabel('Truncation Level')
+        plt.ylabel('Number of Successfully Generated Files')
     
     
     # for i, h5_vec_path in enumerate(h5_files):
