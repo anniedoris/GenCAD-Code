@@ -6,6 +6,7 @@ import os
 from deepcad_constants import *
 import subprocess
 import matplotlib.pyplot as plt
+import pandas as pd
 
 ###########
 # May need to update this if your data is stored elsewhere
@@ -104,8 +105,17 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
             extrude_scale = extrude_scale / 256 * 2
         return extrude_theta, extrude_phi, extrude_gamma, extrude_px, extrude_py, extrude_pz, extrude_scale, extrude_dir1, extrude_dir2, extrude_op, extrude_type
     
+    
     def cadquery_workplane(sketch_plane_obj, sketch_num):
         workplane_comment = f"# Generating a workplane for sketch {sketch_num}\n"
+        # if sketch_plane_obj.origin[0] == (0.0, 0.0, 0.0):
+        #     if (sketch_plane_obj.origin[1] <= (1.0, 0.0, 0.0)).all() and (sketch_plane_obj.origin[2] <= (0.0, 0.0, 1.0)).all():
+        #         python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"XY\")\n"
+        #     elif (sketch_plane_obj.origin[1] <= (0.0, 1.0, 0.0)).all() and (sketch_plane_obj.origin[2] == (0.0, 0.0, 1.0)).all():
+        #         python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"YZ\")\n"
+        #     elif (sketch_plane_obj.origin[1] == (1.0, 0.0, 0.0)).all() and (sketch_plane_obj.origin[2] == (0.0, 1.0, 0.0)).all():
+        #         python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"XZ\")\n"
+        # elif sketch_plane_obj.origin[1] == (0.0, 0.0, 0.0)
         python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]:.{truncate}f}, {sketch_plane_obj.origin[1]:.{truncate}f}, {sketch_plane_obj.origin[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.x_axis[0]:.{truncate}f}, {sketch_plane_obj.x_axis[1]:.{truncate}f}, {sketch_plane_obj.x_axis[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.normal[0]:.{truncate}f}, {sketch_plane_obj.normal[1]:.{truncate}f}, {sketch_plane_obj.normal[2]:.{truncate}f})))\n"
         return workplane_comment + python_command
     
@@ -442,9 +452,10 @@ def step_checker (save_python_dir):
         try:
             subprocess.run(["python", save_python_dir], check=True)
             print(f"Generated STEP file: {save_python_dir}")
+            return True
         except subprocess.CalledProcessError as e:
             print(f"Error generating STEP file: {e}")
-            raise
+            return False
 
 
 if __name__ == "__main__":
@@ -505,8 +516,7 @@ if __name__ == "__main__":
                         if ("/0002/00024147.h5" not in h5_vec_path) and ("/0005/00057125.h5" not in h5_vec_path) and ("/0012/00126522.h5" not in h5_vec_path) and ("/0014/00140564.h5" not in h5_vec_path): #handle these weird hanging cases
                             subprocess.run(["python", python_file_save_path], check=True)
                             stls_generated_successfully += 1
-                            step_checker(python_file_save_path) # check if the generated python file produces a valid STEP file
-                            if os.path.exists(stl_file_save_path):
+                            if step_checker(python_file_save_path): # check if the generated python file produces a valid STEP file
                                 gen_file += 1
 
                             # TODO: Check for equivalence of STLs, create a log of stl differences
@@ -565,7 +575,10 @@ if __name__ == "__main__":
             f.write(f"{truncate}, {gen_file}\n")
         
     if generate_graphs:
-        plt.plot(truncate, gen_file, 'ro')
+        data = [line.strip().split(",") for line in open(f"{prefix}/trunc_logs_.txt")]
+        trunc = [float(d[0]) for d in data]
+        gen_file = [float(d[1]) for d in data]
+        plt.plot(trunc, gen_file, 'ro')
         plt.xlabel('Truncation Level')
         plt.ylabel('Number of Successfully Generated Files')
     
