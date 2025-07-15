@@ -114,12 +114,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
         #         python_command = f"wp_sketch{sketch_num} = cq.Workplane(plane)\n"
         # else:
         python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]:.{truncate}f}, {sketch_plane_obj.origin[1]:.{truncate}f}, {sketch_plane_obj.origin[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.x_axis[0]:.{truncate}f}, {sketch_plane_obj.x_axis[1]:.{truncate}f}, {sketch_plane_obj.x_axis[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.normal[0]:.{truncate}f}, {sketch_plane_obj.normal[1]:.{truncate}f}, {sketch_plane_obj.normal[2]:.{truncate}f})))\n"
-        # elif any(1.0 < coord <= 0.0 for coord in sketch_plane_obj.origin[0]):
-        #     if any(coord == 1.0 for coord in sketch_plane_obj.origin[1]) and (any(coord == 1.0 for coord in sketch_plane_obj.origin[2])):
-        #         plane = 'XY'
-        # elif any(-1.0 < coord <= 0.0 for coord in sketch_plane_obj.origin[0]):
-        #     if any(coord == 1.0 for coord in sketch_plane_obj.origin[1]) and (any(coord == 1.0 for coord in sketch_plane_obj.origin[2])):
-        #         plane = 'XY'
+        
         return workplane_comment + python_command
     
     def cadquery_line(x, y, curr_x, curr_y, loop_list, unquantize, extrude_scale):
