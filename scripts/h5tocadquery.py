@@ -108,15 +108,18 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
     
     def cadquery_workplane(sketch_plane_obj, sketch_num):
         workplane_comment = f"# Generating a workplane for sketch {sketch_num}\n"
-        # if sketch_plane_obj.origin[0] == (0.0, 0.0, 0.0):
-        #     if (sketch_plane_obj.origin[1] <= (1.0, 0.0, 0.0)).all() and (sketch_plane_obj.origin[2] <= (0.0, 0.0, 1.0)).all():
-        #         python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"XY\")\n"
-        #     elif (sketch_plane_obj.origin[1] <= (0.0, 1.0, 0.0)).all() and (sketch_plane_obj.origin[2] == (0.0, 0.0, 1.0)).all():
-        #         python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"YZ\")\n"
-        #     elif (sketch_plane_obj.origin[1] == (1.0, 0.0, 0.0)).all() and (sketch_plane_obj.origin[2] == (0.0, 1.0, 0.0)).all():
-        #         python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"XZ\")\n"
-        # elif sketch_plane_obj.origin[1] == (0.0, 0.0, 0.0)
+        # if any(-1.0 < coord <= 0.0 for coord in sketch_plane_obj.origin[0]):
+        #     if any(coord == 1.0 for coord in sketch_plane_obj.origin[1]) and (any(coord == 1.0 for coord in sketch_plane_obj.origin[2])):
+        #         plane = "front"
+        #         python_command = f"wp_sketch{sketch_num} = cq.Workplane(plane)\n"
+        # else:
         python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]:.{truncate}f}, {sketch_plane_obj.origin[1]:.{truncate}f}, {sketch_plane_obj.origin[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.x_axis[0]:.{truncate}f}, {sketch_plane_obj.x_axis[1]:.{truncate}f}, {sketch_plane_obj.x_axis[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.normal[0]:.{truncate}f}, {sketch_plane_obj.normal[1]:.{truncate}f}, {sketch_plane_obj.normal[2]:.{truncate}f})))\n"
+        # elif any(1.0 < coord <= 0.0 for coord in sketch_plane_obj.origin[0]):
+        #     if any(coord == 1.0 for coord in sketch_plane_obj.origin[1]) and (any(coord == 1.0 for coord in sketch_plane_obj.origin[2])):
+        #         plane = 'XY'
+        # elif any(-1.0 < coord <= 0.0 for coord in sketch_plane_obj.origin[0]):
+        #     if any(coord == 1.0 for coord in sketch_plane_obj.origin[1]) and (any(coord == 1.0 for coord in sketch_plane_obj.origin[2])):
+        #         plane = 'XY'
         return workplane_comment + python_command
     
     def cadquery_line(x, y, curr_x, curr_y, loop_list, unquantize, extrude_scale):
@@ -571,16 +574,17 @@ if __name__ == "__main__":
             append_write = 'a' # append if already exists
         else:
             append_write = 'w' # make a new file if not
-        with open (f"{prefix}/trunc_logs_.txt", append_write) as f:
+        with open (f"{prefix}/trunc_logs.txt", append_write) as f:
             f.write(f"{truncate}, {gen_file}\n")
         
     if generate_graphs:
-        data = [line.strip().split(",") for line in open(f"{prefix}/trunc_logs_.txt")]
+        data = [line.strip().split(",") for line in open(f"{prefix}/trunc_logs.txt")]
         trunc = [float(d[0]) for d in data]
         gen_file = [float(d[1]) for d in data]
         plt.plot(trunc, gen_file, 'ro')
         plt.xlabel('Truncation Level')
         plt.ylabel('Number of Successfully Generated Files')
+        plt.show()
     
     
     # for i, h5_vec_path in enumerate(h5_files):
