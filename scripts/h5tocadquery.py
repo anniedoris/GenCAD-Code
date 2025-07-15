@@ -7,19 +7,14 @@ from deepcad_constants import *
 import subprocess
 import matplotlib.pyplot as plt
 import pandas as pd
+import shutil
+import argparse
 
 ###########
 # May need to update this if your data is stored elsewhere
 H5_VEC_FOLDER = 'deepcad_derived/data/cad_vec'
 UNQUANTIZE = True # TODO: support unquantized?
 generate_stls = True
-truncate = int(input("How many digits would you like: "))
-#file_path_ques = str(input("What file path would you like to save the generated python files to? (default: deepcad_derived/data/cad_vec/cadquery): "))
-graph_ques = str(input("Would you like to generate a graph of the truncation level vs number of successfully generated files? (y/n): "))
-if graph_ques == 'y':
-    generate_graphs = True
-else:
-    generate_graphs = False
 ###########
 
 def extract_h5_file(h5_file_path):
@@ -57,7 +52,7 @@ def create_save_dir(vec_dir):
         os.makedirs(root_data + "/logs")
     return cadquery_data
     
-def convert_h5_to_cadquery(vecs, save_python_dir):
+def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_decimals, truncate):
     """
     Master function that converts tokenized numpy array of CAD commands into a CADQuery python script
 
@@ -440,10 +435,11 @@ def convert_h5_to_cadquery(vecs, save_python_dir):
     # Write the python string to a python file
     prefix = '/'.join(H5_VEC_FOLDER.split('/', 2)[:2])
     
-    save_stl = f"{prefix}/cadquery_stl/" + save_python_dir[24:-3] + ".step" # TODO: get rid of hard coding of save root dir
+    #save_stl = f"{prefix}/cadquery_stl/" + save_python_dir[24:-3] + ".step" 
+    # # TODO: get rid of hard coding of save root dir
     
     if generate_stls:
-        python_cadquery += f"cq.exporters.export(solid, \"{save_stl}\")"
+        python_cadquery += f"cq.exporters.export(solid, \"{save_step_path}\")"
     os.makedirs(save_python_dir.rsplit("/", 1)[0], exist_ok=True)
     with open(save_python_dir, "w") as file:
         file.write(python_cadquery)
@@ -462,10 +458,26 @@ def step_checker (save_python_dir):
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="h5 to cadquery conversion")
+    parser.add_argument("--delete_existing", action="store_true", help="Delete existing data if present (default: False)")
+    parser.add_argument("--use_fixed_decimal", action="store_true", help="Truncate decimal points (default: False)")
+    parser.add_argument("--decimal_points", type=int, default=0, help="Number of decimal points to give floating point values. Can only use this with --use_fixed_decimal")
+    args = parser.parse_args()
     
-    
+    if args.delete_existing:
+        shutil.rmtree(os.path.dirname(H5_VEC_FOLDER) + "/cadquery_stl/")
+        shutil.rmtree(os.path.dirname(H5_VEC_FOLDER) + "/cadquery/")
     # Set up save cadquery save directory
     root_save_dir = create_save_dir(H5_VEC_FOLDER)
+
+    #truncate = int(input("How many digits would you like: "))
+#file_path_ques = str(input("What file path would you like to save the generated python files to? (default: deepcad_derived/data/cad_vec/cadquery): "))
+    graph_ques = str(input("Would you like to generate a graph of the truncation level vs number of successfully generated files? (y/n): "))
+    if graph_ques == 'y':
+        generate_graphs = True
+    else:
+        generate_graphs = False
 
     prefix = '/'.join(H5_VEC_FOLDER.split('/', 2)[:2])
     
@@ -493,7 +505,8 @@ if __name__ == "__main__":
         h5_files = glob.glob(f"{H5_VEC_FOLDER}/{sub_dir}/*.h5")
         
         if generate_stls:
-            os.makedirs(f"{H5_VEC_FOLDER[:-5]}/cadquery_stl/" + sub_dir, exist_ok=True) # make subfolder if it doesn't exist already
+            step_dir_root = os.path.dirname(H5_VEC_FOLDER) + "/cadquery_stl/" + sub_dir
+            os.makedirs(step_dir_root, exist_ok=True)  # make subfolder if it doesn't exist already
         
         # If you want a specific h5 file, collapse the loop under this
         # h5_vec_path = h5_files[690]
@@ -506,11 +519,13 @@ if __name__ == "__main__":
             
             python_file_save_path = root_save_dir + h5_vec_path.replace(H5_VEC_FOLDER, "").rsplit(".", 1)[0] + ".py"
             stl_file_save_path = f"{H5_VEC_FOLDER[:-5]}/cadquery_stl/" + h5_vec_path.replace(H5_VEC_FOLDER, "").rsplit(".", 1)[0] + ".stl"
+            unique_id = python_file_save_path.split(".")[0].removeprefix(os.path.dirname(H5_VEC_FOLDER) + "/cadquery")
+            step_file_save_path = os.path.dirname(H5_VEC_FOLDER) + "/cadquery_stl/" + unique_id + ".step"
             
             h5_vec = extract_h5_file(h5_vec_path)
             
             try:
-                convert_h5_to_cadquery(h5_vec, python_file_save_path)
+                convert_h5_to_cadquery(h5_vec, python_file_save_path, step_file_save_path, args.use_fixed_decimal, args.decimal_points)
                 code_files_successfully_generated += 1
                 
                 if generate_stls:
