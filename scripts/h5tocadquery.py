@@ -471,13 +471,8 @@ if __name__ == "__main__":
     # Set up save cadquery save directory
     root_save_dir = create_save_dir(H5_VEC_FOLDER)
 
-    #truncate = int(input("How many digits would you like: "))
+   
 #file_path_ques = str(input("What file path would you like to save the generated python files to? (default: deepcad_derived/data/cad_vec/cadquery): "))
-    graph_ques = str(input("Would you like to generate a graph of the truncation level vs number of successfully generated files? (y/n): "))
-    if graph_ques == 'y':
-        generate_graphs = True
-    else:
-        generate_graphs = False
 
     prefix = '/'.join(H5_VEC_FOLDER.split('/', 2)[:2])
     
@@ -571,7 +566,6 @@ if __name__ == "__main__":
         print(f"STLs generated successfully: {stls_generated_successfully}")
         print(f"STLs NOT generated: {stls_not_generated}")
         print (f"Total number of generated files: {gen_file}")
-        print (f"Truncation Level: {truncate}")
     
     
         with open(f"{prefix}/logs/code_issues_" + sub_dir + ".txt", "w") as f:
@@ -590,17 +584,8 @@ if __name__ == "__main__":
         else:
             append_write = 'w' # make a new file if not
         with open (f"{prefix}/trunc_logs.txt", append_write) as f:
-            f.write(f"{truncate}, {gen_file}\n")
+            f.write(f"{args.decimal_points}, {gen_file}\n")
         
-    if generate_graphs:
-        data = [line.strip().split(",") for line in open(f"{prefix}/trunc_logs.txt")]
-        trunc = [float(d[0]) for d in data]
-        gen_file = [float(d[1]) for d in data]
-        plt.plot(trunc, gen_file, 'ro')
-        plt.xlabel('Truncation Level')
-        plt.ylabel('Number of Successfully Generated Files')
-        plt.show()
-    
     
     # for i, h5_vec_path in enumerate(h5_files):
         
