@@ -52,7 +52,7 @@ def create_save_dir(vec_dir):
         os.makedirs(root_data + "/logs")
     return cadquery_data
     
-def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_decimals, truncate):
+def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_decimal, truncate):
     """
     Master function that converts tokenized numpy array of CAD commands into a CADQuery python script
 
@@ -108,7 +108,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
         #         plane = "front"
         #         python_command = f"wp_sketch{sketch_num} = cq.Workplane(plane)\n"
         # else:
-        if args.use_fixed_decimals is True: 
+        if args.use_fixed_decimal is True: 
             python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]:.{args.decimal_points}f}, {sketch_plane_obj.origin[1]:.{args.decimal_points}f}, {sketch_plane_obj.origin[2]:.{args.decimal_points}f}), cq.Vector({sketch_plane_obj.x_axis[0]:.{args.decimal_points}f}, {sketch_plane_obj.x_axis[1]:.{args.decimal_points}f}, {sketch_plane_obj.x_axis[2]:.{args.decimal_points}f}), cq.Vector({sketch_plane_obj.normal[0]:.{args.decimal_points}f}, {sketch_plane_obj.normal[1]:.{args.decimal_points}f}, {sketch_plane_obj.normal[2]:.{args.decimal_points}f})))\n"
         else:
             python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}), cq.Vector({sketch_plane_obj.x_axis[0]}, {sketch_plane_obj.x_axis[1]}, {sketch_plane_obj.x_axis[2]}), cq.Vector({sketch_plane_obj.normal[0]}, {sketch_plane_obj.normal[1]}, {sketch_plane_obj.normal[2]})))\n"
@@ -131,9 +131,9 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
                 x = (x + translate)*scale
                 y = (y + translate)*scale
             if len(loop_list) == 0:
-                return f".moveTo({x:.{args.decimal_point}f}, {y:.{args.decimal_points}f})" if args.use_fixed_decimals else f".moveTo({x}, {y})"
+                return f".moveTo({x:.{args.decimal_point}f}, {y:.{args.decimal_points}f})" if args.use_fixed_decimal else f".moveTo({x}, {y})"
             else:
-                return f".lineTo({x:.{args.decimal_points}f}, {y:.{args.decimal_points}f})" if args.use_fixed_decimals else f".lineTo({x}, {y})"
+                return f".lineTo({x:.{args.decimal_points}f}, {y:.{args.decimal_points}f})" if args.use_fixed_decimal else f".lineTo({x}, {y})"
         
     def cadquery_arc(x, y, curr_x, curr_y, sweep, dir_flag, loop_list, unquantize, extrude_scale):
         arc_out = get_arc(x, y, curr_x, curr_y, sweep, dir_flag, is_numerical=True)
@@ -154,12 +154,12 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
             curr_y = (curr_y + translate) * scale
             
         if len(loop_list) == 0:
-            if args.use_fixed_decimals is True:
+            if args.use_fixed_decimal is True:
                 return f".moveTo({curr_x:.{args.decimal_points}f}, {curr_y:.{args.decimal_points}f}).threePointArc(({mid_point_x:.{args.decimal_points}f}, {mid_point_y:.{args.decimal_points}f}), ({end_point_x:.{args.decimal_points}f}, {end_point_y:.{args.decimal_points}f}))"
             else:
                 return f".moveTo({curr_x}, {curr_y}).threePointArc(({mid_point_x}, {mid_point_y}), ({end_point_x}, {end_point_y}))"
         else:
-            if args.use_fixed_decimals is True:
+            if args.use_fixed_decimal is True:
                 return f".threePointArc(({mid_point_x:.{args.decimal_points}f}, {mid_point_y:.{args.decimal_points}f}), ({end_point_x:.{args.decimal_points}f}, {end_point_y:.{args.decimal_points}f}))"
             else:
                 return f".threePointArc(({mid_point_x}, {mid_point_y}), ({end_point_x}, {end_point_y}))"
@@ -172,7 +172,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
             y = (y + translate)*scale
             r = r*scale
         if len(loop_list) == 0:
-            return f".moveTo({x:.{args.decimal_points}f}, {y:.{args.decimal_points}f}).circle({r:.{args.decimal_points}f})" if args.use_fixed_decimals else f".moveTo({x}, {y}).circle({r})"
+            return f".moveTo({x:.{args.decimal_points}f}, {y:.{args.decimal_points}f}).circle({r:.{args.decimal_points}f})" if args.use_fixed_decimal else f".moveTo({x}, {y}).circle({r})"
         else:
             return NotImplementedError("Circle with other things in loop")
     
@@ -199,13 +199,13 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
         if sketch_num == 0: #TODO: futher investigate case 80443. DeepCAD doesn't actually join the bodies? If the bodies are joined, shouldn't lines be removed from the pieces?
             if (op == EXTRUDE_OPERATIONS.index("NewBodyFeatureOperation")) or (op == EXTRUDE_OPERATIONS.index("JoinFeatureOperation")) or (op == EXTRUDE_OPERATIONS.index("CutFeatureOperation")) or (op == EXTRUDE_OPERATIONS.index("IntersectFeatureOperation")):
                 if type == EXTENT_TYPE.index("OneSideFeatureExtentType"):
-                    if args.use_fixed_decimals is True:
+                    if args.use_fixed_decimal is True:
                         extrude_command = f".extrude({dir1:.{args.decimal_points}f})\n"
                     else:
                         extrude_command = f".extrude({dir1})\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid{sketch_num}\n"
                 elif type == EXTENT_TYPE.index("SymmetricFeatureExtentType"):
-                    if args.use_fixed_decimals is True:
+                    if args.use_fixed_decimal is True:
                         extrude_command = f".extrude({dir1:.{args.decimal_points}f}, both=True)\n"
                     else:
                         extrude_command = f".extrude({dir1}, both=True)\n"
@@ -235,8 +235,8 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
                     else:
                         raise NotImplementedError(f"Other dir cases this one: {dir1, dir2}")
                     
-                    extrude_command_with_normal = f".extrude({dir_with_normal})\n" if not args.use_fixed_decimals else f".extrude({dir_with_normal:.{args.decimal_points}f})\n"
-                    extrude_command_against_normal = f".extrude({dir_against_normal})\n" if not args.use_fixed_decimals else f".extrude({dir_against_normal:.{args.decimal_points}f})\n"
+                    extrude_command_with_normal = f".extrude({dir_with_normal})\n" if not args.use_fixed_decimal else f".extrude({dir_with_normal:.{args.decimal_points}f})\n"
+                    extrude_command_against_normal = f".extrude({dir_against_normal})\n" if not args.use_fixed_decimal else f".extrude({dir_against_normal:.{args.decimal_points}f})\n"
                     full_extrude =  f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command_with_normal \
                         + f"solid=solid{sketch_num}\n" \
                         + repeat_sketch.split("\n")[1] + "\n" \
@@ -259,10 +259,10 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
         else:
             if (op == EXTRUDE_OPERATIONS.index("NewBodyFeatureOperation")) or (op == EXTRUDE_OPERATIONS.index("JoinFeatureOperation")):
                 if type == EXTENT_TYPE.index("OneSideFeatureExtentType"):
-                    extrude_command = f".extrude({dir1})\n" if not args.use_fixed_decimals else f".extrude({dir1:.{args.decimal_points}f})\n"
+                    extrude_command = f".extrude({dir1})\n" if not args.use_fixed_decimal else f".extrude({dir1:.{args.decimal_points}f})\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid.union(solid{sketch_num})\n"
                 elif type == EXTENT_TYPE.index("SymmetricFeatureExtentType"):
-                    extrude_command = f".extrude({dir1}, both=True)\n" if not args.use_fixed_decimals else f".extrude({dir1:.{args.decimal_points}f}, both=True)\n"
+                    extrude_command = f".extrude({dir1}, both=True)\n" if not args.use_fixed_decimal else f".extrude({dir1:.{args.decimal_points}f}, both=True)\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid.union(solid{sketch_num})\n"
                 else: # two sided extent
                     if (dir2==0): # should just be one-sided extrude anyway
@@ -286,8 +286,8 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
                     else:
                         raise NotImplementedError(f"Other dir cases here: {dir1}, {dir2}")
                     
-                    extrude_command_with_normal = f".extrude({dir_with_normal})\n" if not args.use_fixed_decimals else f".extrude({dir_with_normal:.{args.decimal_points}f})\n"
-                    extrude_command_against_normal = f".extrude({dir_against_normal})\n" if not args.use_fixed_decimals else f".extrude({dir_against_normal:.{args.decimal_points}f})\n"
+                    extrude_command_with_normal = f".extrude({dir_with_normal})\n" if not args.use_fixed_decimal else f".extrude({dir_with_normal:.{args.decimal_points}f})\n"
+                    extrude_command_against_normal = f".extrude({dir_against_normal})\n" if not args.use_fixed_decimal else f".extrude({dir_against_normal:.{args.decimal_points}f})\n"
                     full_extrude =  f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command_with_normal \
                         + f"solid_temp=solid{sketch_num}\n" \
                         + repeat_sketch.split("\n")[1] + "\n" \
@@ -300,19 +300,19 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
                 
             elif (op == EXTRUDE_OPERATIONS.index("CutFeatureOperation")):
                 if type == EXTENT_TYPE.index("OneSideFeatureExtentType"):
-                    extrude_command = f".extrude({dir1})\n" if not args.use_fixed_decimals else f".extrude({dir1:.{args.decimal_points}f})\n"
+                    extrude_command = f".extrude({dir1})\n" if not args.use_fixed_decimal else f".extrude({dir1:.{args.decimal_points}f})\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid.cut(solid{sketch_num})\n"
                 elif EXTENT_TYPE.index("SymmetricFeatureExtentType"):
-                    extrude_command = f".extrude({dir1}, both=True)\n" if not args.use_fixed_decimals else f".extrude({dir1:.{args.decimal_points}f}, both=True)\n"
+                    extrude_command = f".extrude({dir1}, both=True)\n" if not args.use_fixed_decimal else f".extrude({dir1:.{args.decimal_points}f}, both=True)\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid.cut(solid{sketch_num})\n"
                 else:
                     raise NotImplementedError("cut other extent")
             else: # this is an intersect
                 if type == EXTENT_TYPE.index("OneSideFeatureExtentType"):
-                    extrude_command = f".extrude({dir1})\n" if not args.use_fixed_decimals else f".extrude({dir1:.{args.decimal_points}f})\n"
+                    extrude_command = f".extrude({dir1})\n" if not args.use_fixed_decimal else f".extrude({dir1:.{args.decimal_points}f})\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid.intersect(solid{sketch_num})\n"
                 elif type == EXTENT_TYPE.index("SymmetricFeatureExtentType"):
-                    extrude_command = f".extrude({dir1}, both=True)\n" if not args.use_fixed_decimals else f".extrude({dir1:.{args.decimal_points}f}, both=True)\n"
+                    extrude_command = f".extrude({dir1}, both=True)\n" if not args.use_fixed_decimal else f".extrude({dir1:.{args.decimal_points}f}, both=True)\n"
                     return f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command + f"solid=solid.intersect(solid{sketch_num})\n"
                 else: # two sided extent
                     if (dir1>0) and (dir2>0):
@@ -326,8 +326,8 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
                     else:
                         raise NotImplementedError("Other dir cases")
                     
-                    extrude_command_with_normal = f".extrude({dir_with_normal})\n" if not args.use_fixed_decimals else f".extrude({dir_with_normal:.{args.decimal_points}f})\n"
-                    extrude_command_against_normal = f".extrude({dir_against_normal})\n" if not args.use_fixed_decimals else f".extrude({dir_against_normal:.{args.decimal_points}f})\n"
+                    extrude_command_with_normal = f".extrude({dir_with_normal})\n" if not args.use_fixed_decimal else f".extrude({dir_with_normal:.{args.decimal_points}f})\n"
+                    extrude_command_against_normal = f".extrude({dir_against_normal})\n" if not args.use_fixed_decimal else f".extrude({dir_against_normal:.{args.decimal_points}f})\n"
                     full_extrude =  f"solid{sketch_num}=wp_sketch{sketch_num}" + loops_joined + extrude_command_with_normal \
                         + f"solid_temp=solid{sketch_num}\n" \
                         + repeat_sketch.split("\n")[1] + "\n" \
