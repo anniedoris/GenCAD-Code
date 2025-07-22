@@ -131,7 +131,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
                 x = (x + translate)*scale
                 y = (y + translate)*scale
             if len(loop_list) == 0:
-                return f".moveTo({x:.{args.decimal_point}f}, {y:.{args.decimal_points}f})" if args.use_fixed_decimal else f".moveTo({x}, {y})"
+                return f".moveTo({x:.{args.decimal_points}f}, {y:.{args.decimal_points}f})" if args.use_fixed_decimal else f".moveTo({x}, {y})"
             else:
                 return f".lineTo({x:.{args.decimal_points}f}, {y:.{args.decimal_points}f})" if args.use_fixed_decimal else f".lineTo({x}, {y})"
         
