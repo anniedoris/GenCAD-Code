@@ -103,16 +103,16 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
     
     def cadquery_workplane(sketch_plane_obj, sketch_num):
         workplane_comment = f"# Generating a workplane for sketch {sketch_num}\n"
-        # if any (coord == 1.0 for coord in sketch_plane_obj.x_axis) and any(coord == 1.0 for coord in sketch_plane_obj.normal):
-        #     if sketch_plane_obj.x_axis[0] == 1.0 and sketch_plane_obj.normal[2] == 1.0:  # x axis aligned
-        #         plane = 'XY' #this is checked and it works
-        #     if sketch_plane_obj.x_axis[0] == 1.0 and sketch_plane_obj.normal[1] == -1.0:  # x axis aligned
-        #         plane = 'XZ'
-        #     python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"{plane}\").transformed(offset=({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}))\n"    
-        # else:
-        if use_fixed_decimal is True: 
-                python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]:.{truncate}f}, {sketch_plane_obj.origin[1]:.{truncate}f}, {sketch_plane_obj.origin[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.x_axis[0]:.{truncate}f}, {sketch_plane_obj.x_axis[1]:.{truncate}f}, {sketch_plane_obj.x_axis[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.normal[0]:.{truncate}f}, {sketch_plane_obj.normal[1]:.{truncate}f}, {sketch_plane_obj.normal[2]:.{truncate}f})))\n"
+        if any (coord == 1.0 for coord in sketch_plane_obj.x_axis) and any(coord == 1.0 for coord in sketch_plane_obj.normal):
+            if sketch_plane_obj.x_axis[0] == 1.0 and sketch_plane_obj.normal[2] == 1.0:  # x axis aligned
+                plane = 'XY' #this is checked and it works
+            if sketch_plane_obj.x_axis[0] == 1.0 and sketch_plane_obj.normal[1] == -1.0:  # x axis aligned
+                plane = 'XZ'
+            python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"{plane}\").transformed(offset=({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}))\n"    
         else:
+            if use_fixed_decimal is True: 
+                python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]:.{truncate}f}, {sketch_plane_obj.origin[1]:.{truncate}f}, {sketch_plane_obj.origin[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.x_axis[0]:.{truncate}f}, {sketch_plane_obj.x_axis[1]:.{truncate}f}, {sketch_plane_obj.x_axis[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.normal[0]:.{truncate}f}, {sketch_plane_obj.normal[1]:.{truncate}f}, {sketch_plane_obj.normal[2]:.{truncate}f})))\n"
+            else:
                 python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}), cq.Vector({sketch_plane_obj.x_axis[0]}, {sketch_plane_obj.x_axis[1]}, {sketch_plane_obj.x_axis[2]}), cq.Vector({sketch_plane_obj.normal[0]}, {sketch_plane_obj.normal[1]}, {sketch_plane_obj.normal[2]})))\n"
         return workplane_comment + python_command
     
