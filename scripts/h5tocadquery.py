@@ -14,7 +14,7 @@ import argparse
 # May need to update this if your data is stored elsewhere
 H5_VEC_FOLDER = 'deepcad_derived/data/cad_vec'
 UNQUANTIZE = True # TODO: support unquantized?
-generate_stls = True
+generate_stls = False
 ###########
 
 def extract_h5_file(h5_file_path):
@@ -103,20 +103,17 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
     
     def cadquery_workplane(sketch_plane_obj, sketch_num):
         workplane_comment = f"# Generating a workplane for sketch {sketch_num}\n"
-        if sketch_plane_obj.x_axis.all() == 0.0 and sketch_plane_obj.normal.all() == 0.0: # x axis aligned
-            plane = 'XY'
-            python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"{plane}\").transformed(offset=({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}))\n"    
-        else:
-            if use_fixed_decimal is True: 
+        # if any (coord == 1.0 for coord in sketch_plane_obj.x_axis) and any(coord == 1.0 for coord in sketch_plane_obj.normal):
+        #     if sketch_plane_obj.x_axis[0] == 1.0 and sketch_plane_obj.normal[2] == 1.0:  # x axis aligned
+        #         plane = 'XY' #this is checked and it works
+        #     if sketch_plane_obj.x_axis[0] == 1.0 and sketch_plane_obj.normal[1] == -1.0:  # x axis aligned
+        #         plane = 'XZ'
+        #     python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"{plane}\").transformed(offset=({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}))\n"    
+        # else:
+        if use_fixed_decimal is True: 
                 python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]:.{truncate}f}, {sketch_plane_obj.origin[1]:.{truncate}f}, {sketch_plane_obj.origin[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.x_axis[0]:.{truncate}f}, {sketch_plane_obj.x_axis[1]:.{truncate}f}, {sketch_plane_obj.x_axis[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.normal[0]:.{truncate}f}, {sketch_plane_obj.normal[1]:.{truncate}f}, {sketch_plane_obj.normal[2]:.{truncate}f})))\n"
-            else:
+        else:
                 python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}), cq.Vector({sketch_plane_obj.x_axis[0]}, {sketch_plane_obj.x_axis[1]}, {sketch_plane_obj.x_axis[2]}), cq.Vector({sketch_plane_obj.normal[0]}, {sketch_plane_obj.normal[1]}, {sketch_plane_obj.normal[2]})))\n"
-        # elif any(1.0 < coord <= 0.0 for coord in sketch_plane_obj.origin[0]):
-        #     if any(coord == 1.0 for coord in sketch_plane_obj.origin[1]) and (any(coord == 1.0 for coord in sketch_plane_obj.origin[2])):
-        #         plane = 'XY'
-        # elif any(-1.0 < coord <= 0.0 for coord in sketch_plane_obj.origin[0]):
-        #     if any(coord == 1.0 for coord in sketch_plane_obj.origin[1]) and (any(coord == 1.0 for coord in sketch_plane_obj.origin[2])):
-        #         plane = 'XY'
         return workplane_comment + python_command
     
     def cadquery_line(x, y, curr_x, curr_y, loop_list, unquantize, extrude_scale):
@@ -494,8 +491,8 @@ if __name__ == "__main__":
     # h5_vec_path = h5_files[35167]
     # h5_vec_path = h5_files[95149]
     
-    sub_dirs = [str(i).zfill(4) for i in range(100)]
-    #sub_dirs = ["0000"]
+    #sub_dirs = [str(i).zfill(4) for i in range(100)]
+    sub_dirs = ["0000"]
 
     for sub_dir in sub_dirs:
         
