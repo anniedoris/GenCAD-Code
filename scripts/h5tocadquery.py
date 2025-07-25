@@ -107,9 +107,12 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
         if sketch_plane_obj.x_axis[0] == 1.0 and sketch_plane_obj.normal[2] == 1.0:
             plane = 'XY' #this is checked and it works
             python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"{plane}\").transformed(offset=({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}))\n" 
-        if sketch_plane_obj.x_axis[0] == 1.0 and sketch_plane_obj.normal[1] == -1.0:
+        elif sketch_plane_obj.x_axis[0] == 1.0 and sketch_plane_obj.normal[1] == -1.0:
             plane = 'XZ' #checked this and it works as well
             python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"{plane}\").transformed(offset=({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}))\n"    
+        elif sketch_plane_obj.x_axis[1] == 1.0 and sketch_plane_obj.normal[0] == 1.0:
+            plane = 'YZ'
+            python_command = f"wp_sketch{sketch_num} = cq.Workplane(\"{plane}\").transformed(offset=({sketch_plane_obj.origin[0]}, {sketch_plane_obj.origin[1]}, {sketch_plane_obj.origin[2]}))\n"
         else:
             if use_fixed_decimal is True: 
                 python_command = f"wp_sketch{sketch_num} = cq.Workplane(cq.Plane(cq.Vector({sketch_plane_obj.origin[0]:.{truncate}f}, {sketch_plane_obj.origin[1]:.{truncate}f}, {sketch_plane_obj.origin[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.x_axis[0]:.{truncate}f}, {sketch_plane_obj.x_axis[1]:.{truncate}f}, {sketch_plane_obj.x_axis[2]:.{truncate}f}), cq.Vector({sketch_plane_obj.normal[0]:.{truncate}f}, {sketch_plane_obj.normal[1]:.{truncate}f}, {sketch_plane_obj.normal[2]:.{truncate}f})))\n"
