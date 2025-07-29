@@ -133,6 +133,7 @@ def convert_h5_to_cadquery(vecs, save_python_dir, save_step_path, use_fixed_deci
             if len(loop_list) == 0:
                 return f".moveTo({x:.{truncate}f}, {y:.{truncate}f})" if use_fixed_decimal else f".moveTo({x}, {y})"
             else:
+                
                 return f".lineTo({x:.{truncate}f}, {y:.{truncate}f})" if use_fixed_decimal else f".lineTo({x}, {y})"
         
     def cadquery_arc(x, y, curr_x, curr_y, sweep, dir_flag, loop_list, unquantize, extrude_scale):
@@ -513,6 +514,8 @@ if __name__ == "__main__":
         
         # Get list of all .h5 files in subdirectories
         h5_files = glob.glob(f"{H5_VEC_FOLDER}/{sub_dir}/*.h5")
+
+        h5_files = sorted(h5_files)
         
         if generate_stls:
             step_dir_root = os.path.dirname(H5_VEC_FOLDER) + "/cadquery_stl/" + sub_dir
